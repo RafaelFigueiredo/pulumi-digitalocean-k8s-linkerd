@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 1
+          fetch-depth: 1   
       - uses: actions/setup-node@v1
         with:
           node-version: 14.x
@@ -45,3 +45,41 @@ jobs:
         with:
           name: kubeconfig
           path: .pulumi/kubeconfig
+  
+  
+  install-linkerd:
+    name: Install Linkerd
+    runs-on: ubuntu-20.04
+    needs:
+      - up
+    steps:
+      - uses: azure/setup-kubectl@v1
+        with:
+          version: 'v1.20.5' # default is latest stable
+        id: install
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: kubeconfig
+          path: .
+
+      - uses: anthonykgross/ansible-vault-cli-github-action@v1
+        with:
+          vault_key: ${{ secrets.ANSIBLE_VAULT_KEY }}
+          command: "ansible-vault decrypt kubeconfig"
+      
+      - uses: anthonykgross/ansible-vault-cli-github-action@v1
+        with:
+          vault_key: ${{ secrets.ANSIBLE_VAULT_KEY }}
+          command: "chmod 444 kubeconfig"
+
+      - run: |
+          mkdir -p ~/.kube
+          mv kubeconfig ~/.kube/config
+
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      
+      - name: Deploy to Kubernetes cluster
+        run: kubectl apply -f .k8s/manifests
