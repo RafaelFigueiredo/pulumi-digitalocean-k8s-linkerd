@@ -1,8 +1,8 @@
-name: Pulumi
+name: Update Infra
 on:
   push:
     branches:
-      - master
+      - main
 jobs:
   up:
     name: Update
