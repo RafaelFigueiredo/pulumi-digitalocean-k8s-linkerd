@@ -5,8 +5,8 @@ on:
       - main
 jobs:
   up:
-    name: Update
-    runs-on: ubuntu-latest
+    name: Create Cluster
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
         with:
@@ -25,3 +25,23 @@ jobs:
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
           DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+
+      - run: pulumi stack output kubeconfig --show-secrets > ./kubeconfig
+        working-directory: .pulumi
+
+      - uses: anthonykgross/ansible-vault-cli-github-action@v1
+        with:
+          vault_key: ${{ secrets.ANSIBLE_VAULT_KEY }}
+          command: "ansible-vault encrypt .pulumi/kubeconfig"
+
+      - uses: anthonykgross/ansible-vault-cli-github-action@v1
+        with:
+          vault_key: ${{ secrets.ANSIBLE_VAULT_KEY }}
+          command: "chmod 444 .pulumi/kubeconfig"
+
+      - run: ls -la .pulumi
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: kubeconfig
+          path: .pulumi/kubeconfig
